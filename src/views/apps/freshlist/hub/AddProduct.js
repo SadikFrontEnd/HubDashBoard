@@ -1,304 +1,479 @@
-import React from "react";
+import React, { Component } from "react";
 import {
   Card,
   CardBody,
-  Input,
-  Row,
   Col,
+  Form,
+  Row,
+  Input,
   Label,
-  CustomInput,
   Button,
-  UncontrolledDropdown,
-  DropdownMenu,
-  DropdownItem,
-  DropdownToggle,
+  FormGroup,
+  CustomInput,
+  List,
 } from "reactstrap";
-// import axiosConfig from "../../../axiosConfig";
-import axios from "axios";
-import { ContextLayout } from "../../../../utility/context/Layout";
-import { AgGridReact } from "ag-grid-react";
-import { Edit, Trash2, ChevronDown, Eye } from "react-feather";
+
 import { history } from "../../../../history";
-import "../../../../assets/scss/plugins/tables/_agGridStyleOverride.scss";
-import "../../../../assets/scss/pages/users.scss";
-import { Route, Link } from "react-router-dom";
+import axiosConfig from "../../../../axiosConfig";
 
-class AddProduct extends React.Component {
-  state = {
-    rowData: [],
-    paginationPageSize: 20,
-    currenPageSize: "",
-    getPageSize: "",
-    defaultColDef: {
-      sortable: true,
-      editable: true,
-      resizable: true,
-      suppressMenu: true,
-    },
-    columnDefs: [
-      {
-        headerName: "S.No",
-        valueGetter: "node.rowIndex + 1",
-        field: "node.rowIndex + 1",
-        width: 150,
-        filter: true,
-      },
-      {
-        headerName: "Hub Name",
-        field: "hub",
-        filter: true,
-        width: 200,
-        cellRendererFramework: (params) => {
-          return (
-            <div>
-              <span>{params.data.hub}</span>
-            </div>
-          );
-        },
-      },
-      {
-        headerName: "Product Name",
-        field: "product_name",
-        filter: true,
-        width: 150,
-        cellRendererFramework: (params) => {
-          return (
-            <div>
-              <span>{params.data.product_name}</span>
-            </div>
-          );
-        },
-      },
+// Editor
+import { EditorState, convertToRaw } from "draft-js";
+import { Editor } from "react-draft-wysiwyg";
+import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
+import "../../../../assets/scss/plugins/extensions/editor.scss";
+import draftToHtml from "draftjs-to-html";
 
-      {
-        headerName: "Category",
-        field: "category",
-        filter: true,
-        width: 150,
-        cellRendererFramework: (params) => {
-          return (
-            <div>
-              <span>{params.data.category}</span>
-            </div>
-          );
-        },
-      },
-      {
-        headerName: "SubCategory",
-        field: "subcategory",
-        filter: true,
-        width: 150,
-        cellRendererFramework: (params) => {
-          return (
-            <div>
-              <span>{params.data.subcategory}</span>
-            </div>
-          );
-        },
-      },
-      {
-        headerName: "Notify",
-        field: "notify",
-        filter: true,
-        width: 150,
-        cellRendererFramework: (params) => {
-          return (
-            <div>
-              <span>{params.data.notify}</span>
-            </div>
-          );
-        },
-      },
-      {
-        headerName: "Actions",
-        field: "sortorder",
-        field: "transactions",
-        width: 150,
-        cellRendererFramework: (params) => {
-          return (
-            <div className="actions cursor-pointer">
-              <Eye
-                className="mr-50"
-                size="25px"
-                color="green"
-                onClick={() =>
-                  history.push(
-                    `/app/freshlist/house/viewHouseProduct/${params.data._id}`
-                  )
-                }
-              />
-              <Edit
-                className="mr-50"
-                size="25px"
-                color="blue"
-                onClick={() =>
-                  history.push("/app/freshlist/house/editHouseProduct")
-                }
-              />
-              <Trash2
-                className="mr-50"
-                size="25px"
-                color="red"
-                onClick={() => {
-                  let selectedData = this.gridApi.getSelectedRows();
-                  this.runthisfunction(params.data._id);
-                  this.gridApi.updateRowData({ remove: selectedData });
-                }}
-              />
-            </div>
-          );
-        },
-      },
-    ],
+export class AddProduct extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      name: "",
+      selectedFile: null,
+      selectedName: "",
+      sortorder: "",
+      desc: "",
+      brand_img: "",
+      status: "",
+      buying_price: "",
+      buying_price1: "",
+    };
+  }
+
+  onChangeHandler = (event) => {
+    this.setState({ selectedFile: event.target.files[0] });
+    this.setState({ selectedName: event.target.files[0].name });
+    console.log(event.target.files[0]);
   };
 
-  onGridReady = (params) => {
-    this.gridApi = params.api;
-    this.gridColumnApi = params.columnApi;
+  SizeData = () => {
+    console.log("object");
+  };
+
+  changeHandler1 = (e) => {
+    this.setState({ status: e.target.value });
+  };
+  changeHandler = (e) => {
+    this.setState({ [e.target.name]: e.target.value });
+  };
+  onEditorStateChange = (editorState) => {
     this.setState({
-      currenPageSize: this.gridApi.paginationGetCurrentPage() + 1,
-      getPageSize: this.gridApi.paginationGetPageSize(),
-      totalPages: this.gridApi.paginationGetTotalPages(),
+      editorState,
+      desc: draftToHtml(convertToRaw(editorState.getCurrentContent())),
     });
   };
-  updateSearchQuery = (val) => {
-    this.gridApi.setQuickFilter(val);
-  };
-  filterSize = (val) => {
-    if (this.gridApi) {
-      this.gridApi.paginationSetPageSize(Number(val));
-      this.setState({
-        currenPageSize: val,
-        getPageSize: val,
-      });
+
+  submitHandler = (e) => {
+    e.preventDefault();
+    const data = new FormData();
+    data.append("name", this.state.name);
+    data.append("sortorder", this.state.sortorder);
+    data.append("desc", this.state.desc);
+    data.append("status", this.state.status);
+    if (this.state.selectedFile !== null) {
+      data.append(
+        "brand_img",
+        this.state.selectedFile,
+        this.state.selectedName
+      );
     }
+    axiosConfig
+      .post("/addbrand", data)
+      .then((response) => {
+        console.log(response);
+        this.props.history.push("/app/freshlist/house/HouseProductList");
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   };
   render() {
-    const { rowData, columnDefs, defaultColDef } = this.state;
     return (
-      console.log(rowData),
-      (
-        <Row className="app-user-list">
-          <Col sm="12"></Col>
-          <Col sm="12">
-            <Card>
-              <Row className="m-2">
-                <Col>
-                  <h1 sm="6" className="float-left">
-                    Hub
-                  </h1>
-                </Col>
-                <Col>
-                  <Route
-                    render={({ history }) => (
-                      <Button
-                        className="btn btn-primary float-right"
-                        onClick={() =>
-                          history.push("/app/freshlist/house/addHouseProduct")
-                        }
+      <div>
+        <Card>
+          <Row className="m-2">
+            <Col>
+              <h1 col-sm-6 className="float-left">
+                Add Product
+              </h1>
+            </Col>
+            <Col>
+              <Button
+                className=" btn btn-danger float-right"
+                onClick={() =>
+                  history.push("/app/freshlist/house/houseProductList")
+                }
+              >
+                Back
+              </Button>
+            </Col>
+          </Row>
+          <Row>
+            <Col md="9">
+              <CardBody className="d-flex">
+                <Form className="mx-2 " onSubmit={this.submitHandler}>
+                  <Row className="mb-2">
+                    <Col lg="6" md="6" className="mb-2">
+                      <Label> Product Name</Label>
+                      <Input
+                        type="text"
+                        placeholder="Product Name"
+                        name="name"
+                        value={this.state.name}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+
+                    <Col lg="6" md="6" className="mb-2">
+                      <Label>Type</Label>
+                      <CustomInput
+                        type="select"
+                        placeholder="Select Type"
+                        name="type"
+                        value={this.state.name}
+                        onChange={this.changeHandler}
                       >
-                        Add New
-                      </Button>
-                    )}
-                  />
-                </Col>
-              </Row>
-              <CardBody>
-                {this.state.rowData === null ? null : (
-                  <div className="ag-theme-material w-100 my-2 ag-grid-table">
-                    <div className="d-flex flex-wrap justify-content-between align-items-center">
-                      <div className="mb-1">
-                        <UncontrolledDropdown className="p-1 ag-dropdown">
-                          <DropdownToggle tag="div">
-                            {this.gridApi
-                              ? this.state.currenPageSize
-                              : "" * this.state.getPageSize -
-                                (this.state.getPageSize - 1)}{" "}
-                            -{" "}
-                            {this.state.rowData.length -
-                              this.state.currenPageSize *
-                                this.state.getPageSize >
-                            0
-                              ? this.state.currenPageSize *
-                                this.state.getPageSize
-                              : this.state.rowData.length}{" "}
-                            of {this.state.rowData.length}
-                            <ChevronDown className="ml-50" size={15} />
-                          </DropdownToggle>
-                          <DropdownMenu right>
-                            <DropdownItem
-                              tag="div"
-                              onClick={() => this.filterSize(20)}
-                            >
-                              20
-                            </DropdownItem>
-                            <DropdownItem
-                              tag="div"
-                              onClick={() => this.filterSize(50)}
-                            >
-                              50
-                            </DropdownItem>
-                            <DropdownItem
-                              tag="div"
-                              onClick={() => this.filterSize(100)}
-                            >
-                              100
-                            </DropdownItem>
-                            <DropdownItem
-                              tag="div"
-                              onClick={() => this.filterSize(134)}
-                            >
-                              134
-                            </DropdownItem>
-                          </DropdownMenu>
-                        </UncontrolledDropdown>
-                      </div>
-                      <div className="d-flex flex-wrap justify-content-between mb-1">
-                        <div className="table-input mr-1">
-                          <Input
-                            placeholder="search..."
-                            onChange={(e) =>
-                              this.updateSearchQuery(e.target.value)
-                            }
-                            value={this.state.value}
+                        <option>---Select---</option>
+                        <option value="veg">Veg</option>
+                        <option value="nonveg">Non-Veg</option>
+                        <option value="egg">Egg only</option>
+                      </CustomInput>
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Brand</Label>
+                      <Input
+                        type="text"
+                        placeholder="Enter brand"
+                        name="name"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Color</Label>
+                      <Input
+                        type="text"
+                        placeholder="Color"
+                        name="name"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-2">
+                      {/* <Label>Attribute</Label> */}
+                      <Label>Size (Attribute)</Label>
+                      <Input
+                        type="text"
+                        placeholder="Enter value"
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Model</Label>
+                      <Input
+                        type="text"
+                        placeholder="Enter Model"
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>GST Class</Label>
+                      <Input
+                        type="text"
+                        placeholder="GST Class"
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Minimum Selling Quatity</Label>
+                      <Input
+                        type="text"
+                        placeholder=""
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Maximum Selling Quantity</Label>
+                      <Input
+                        type="text"
+                        placeholder=""
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Reward Points</Label>
+                      <Input
+                        type="number"
+                        placeholder=""
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Upload Product Images</Label>
+                      <CustomInput
+                        type="file"
+                        placeholder=""
+                        name=""
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Upload Product Images</Label>
+                      <CustomInput
+                        type="file"
+                        placeholder=""
+                        name=""
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Upload Product Images</Label>
+                      <CustomInput
+                        type="file"
+                        placeholder=""
+                        name=""
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="6" md="6" className="mb-1">
+                      <Label>Video Url</Label>
+                      <Input
+                        type="text"
+                        placeholder=""
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                  </Row>
+
+                  <Row className="my-1">
+                    <Col lg="12" md="12">
+                      <h1 col-sm-6 className="float-left">
+                        SEO
+                      </h1>
+                    </Col>
+                  </Row>
+
+                  <Row>
+                    <Col lg="4" md="4" className="mb-1">
+                      <Label>MetaData</Label>
+                      <Input
+                        type="text"
+                        placeholder="MetaData"
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="4" md="4" className="mb-1">
+                      <Label>MetaData Description </Label>
+                      <Input
+                        type="text"
+                        placeholder="Description"
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                    <Col lg="4" md="4" className="mb-1">
+                      <Label>Product Search Tags</Label>
+                      <Input
+                        type="text"
+                        placeholder="Product Search Tags"
+                        name="type"
+                        value={this.state.sortorder}
+                        onChange={this.changeHandler}
+                      />
+                    </Col>
+                  </Row>
+
+                  <Row className="">
+                    <Col lg="12" md="12" className="mb-2 mt-1">
+                      <FormGroup>
+                        <Label className="mb-1">
+                          <h3>Price</h3>
+                        </Label>
+                        <div>
+                          <input
+                            style={{ marginRight: "3px" }}
+                            type="radio"
+                            name="status"
+                            value="MRP"
                           />
+                          <span style={{ marginRight: "80px" }}>MRP</span>
+                          {this.state.buying_price1 === "" ? (
+                            <Row className="mb-2 mt-1">
+                              <Col lg="6" md="6">
+                                <FormGroup>
+                                  <Label>Buying Price</Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="Enter title Here"
+                                    name="buying_price"
+                                    value={this.state.buying_price}
+                                    onChange={this.changeHandler}
+                                  />
+                                </FormGroup>
+                              </Col>
+                              <Col lg="6" md="6">
+                                <FormGroup>
+                                  <Label>M Margin (%)</Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="Enter title Here"
+                                    name="m_margin"
+                                    value={this.state.m_margin}
+                                    onChange={this.changeHandler}
+                                  />
+                                </FormGroup>
+                              </Col>
+                            </Row>
+                          ) : null}
+
+                          <input
+                            style={{ marginRight: "3px" }}
+                            type="radio"
+                            name="status"
+                            value="NO MRP"
+                          />
+                          <span style={{ marginRight: "3px" }}>NO MRP</span>
+
+                          {this.state.buying_price === "" ? (
+                            <Row className="mb-2 mt-1">
+                              <Col lg="4" md="4">
+                                <FormGroup>
+                                  <Label>Buying Price</Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="Enter title Here"
+                                    name="buying_price1"
+                                    value={this.state.buying_price}
+                                    onChange={this.changeHandler}
+                                  />
+                                </FormGroup>
+                              </Col>
+                              <Col lg="4" md="4">
+                                <FormGroup>
+                                  <Label>M Margin (%)</Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="Enter title Here"
+                                    name="m_margin"
+                                    value={this.state.m_margin}
+                                    onChange={this.changeHandler}
+                                  />
+                                </FormGroup>
+                              </Col>
+                              <Col lg="4" md="4">
+                                <FormGroup>
+                                  <Label>Selling Price</Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="Enter title Here"
+                                    name="selling_price"
+                                    value={this.state.selling_price}
+                                    onChange={this.changeHandler}
+                                  />
+                                </FormGroup>
+                              </Col>
+                            </Row>
+                          ) : null}
                         </div>
-                        <div className="export-btn">
-                          <Button.Ripple
-                            color="primary"
-                            onClick={() => this.gridApi.exportDataAsCsv()}
-                          >
-                            Export as CSV
-                          </Button.Ripple>
-                        </div>
-                      </div>
-                    </div>
-                    <ContextLayout.Consumer>
-                      {(context) => (
-                        <AgGridReact
-                          gridOptions={{}}
-                          rowSelection="multiple"
-                          defaultColDef={defaultColDef}
-                          columnDefs={columnDefs}
-                          rowData={rowData}
-                          onGridReady={this.onGridReady}
-                          colResizeDefault={"shift"}
-                          animateRows={true}
-                          floatingFilter={false}
-                          pagination={true}
-                          paginationPageSize={this.state.paginationPageSize}
-                          pivotPanelShow="always"
-                          enableRtl={context.state.direction === "rtl"}
+                      </FormGroup>
+                    </Col>
+
+                    <Col lg="12" md="12">
+                      <FormGroup>
+                        <Label>Description</Label>
+                        <Editor
+                          toolbarClassName="demo-toolbar-absolute"
+                          wrapperClassName="demo-wrapper"
+                          editorClassName="demo-editor"
+                          editorState={this.state.editorState}
+                          onEditorStateChange={this.onEditorStateChange}
+                          toolbar={{
+                            image: {
+                              uploadCallback: this.uploadImageCallBack,
+                              previewImage: true,
+                              alt: { present: false, mandatory: false },
+                              uploadEnabled: true,
+                              inputAccept:
+                                "image/gif,image/jpeg,image/jpg,image/png,image/svg",
+                            },
+                          }}
                         />
-                      )}
-                    </ContextLayout.Consumer>
-                  </div>
-                )}
+                      </FormGroup>
+                    </Col>
+                  </Row>
+                  <Row>
+                    <Button.Ripple
+                      color="primary"
+                      type="submit"
+                      className="mr-1 mb-1"
+                    >
+                      Add
+                    </Button.Ripple>
+                  </Row>
+                </Form>
               </CardBody>
-            </Card>
-          </Col>
-        </Row>
-      )
+            </Col>
+            <Col md="3" className="mt-3">
+              <FormGroup check inline>
+                <List type="unstyled">
+                  <li>
+                    <Input type="checkbox" />
+                    <Label check>Category</Label>
+                    <ul>
+                      <li style={{ listStyleType: "none" }}>
+                        <Input type="checkbox" />
+                        <Label check> Sub Category</Label>
+                      </li>
+                      <li style={{ listStyleType: "none" }}>
+                        <Input type="checkbox" />
+                        <Label check> Sub Category</Label>
+                      </li>
+                    </ul>
+                  </li>
+                </List>
+              </FormGroup>
+              <FormGroup check inline>
+                <List type="unstyled">
+                  <li>
+                    <Input type="checkbox" />
+                    <Label check>Category</Label>
+                    <ul>
+                      <li style={{ listStyleType: "none" }}>
+                        <Input type="checkbox" />
+                        <Label check> Sub Category</Label>
+                      </li>
+                      <li style={{ listStyleType: "none" }}>
+                        <Input type="checkbox" />
+                        <Label check> Sub Category</Label>
+                      </li>
+                    </ul>
+                  </li>
+                </List>
+              </FormGroup>
+            </Col>
+          </Row>
+        </Card>
+      </div>
     );
   }
 }

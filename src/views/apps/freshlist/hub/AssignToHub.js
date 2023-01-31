@@ -165,7 +165,9 @@ class AssignToHub extends React.Component {
                   <Route
                     render={({ history }) => (
                       <Button
-                        className="btn btn-info float-right"
+                        // className="btn btn-info float-right"
+                        className="btn btn-primary float-right"
+                        color="primary"
                         onClick={() =>
                           history.push("/app/freshlist/hub/addbrand")
                         }

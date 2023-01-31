@@ -202,6 +202,7 @@ class AssignToBatch extends React.Component {
                     render={({ history }) => (
                       <Button
                         className="btn btn-primary float-right"
+                        color="primary"
                         onClick={() =>
                           history.push("/app/freshlist/hub/addbatch")
                         }
